@@ -51,8 +51,4 @@ class Card:
     def __init__(self, id: int):
         assert(0 <= id <= 53), "Invalid card id"
         self.id = id
-        self.set = idToSet(id)
-
-    
-
-    
+        self.set = idToSet(id)    

@@ -7,13 +7,12 @@ from typing import Iterable, Optional, Sequence, Union
 NUM_PLAYERS = 6
 NUM_CARDS = 54
 CARDS_PER_SET = 6
-NUM_SETS = NUM_CARDS // CARDS_PER_SET
+NUM_SETS = 9
 ALL_CARDS_MASK = (1 << NUM_CARDS) - 1
 ALL_SETS_MASK = (1 << NUM_SETS) - 1
 SET_CARD_MASKS = tuple(
     ((1 << CARDS_PER_SET) - 1) << (CARDS_PER_SET * idx) for idx in range(NUM_SETS)
 )
-
 
 @dataclass(frozen=True)
 class Turn:
@@ -63,9 +62,9 @@ class PlayerState:
 
     def __init__(
         self,
-        hand: Union[int, Sequence[bool], Iterable[Union[int, object]]],
+        hand: int | Sequence[bool] | Iterable[int | object],
         player_index: Optional[int] = None,
-        public_cards: Optional[Union[int, Sequence[bool], Iterable[Union[int, object]]]] = None,
+        public_cards: Optional[int | Sequence[bool] | Iterable[int | object]] = None,
     ) -> None:
         if player_index is None:
             raise ValueError("player_index must be provided to track table state.")
