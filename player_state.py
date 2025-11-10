@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Iterable, Optional, Sequence, Union
+from card import Card
 
 
 NUM_PLAYERS = 6
@@ -13,6 +14,7 @@ ALL_SETS_MASK = (1 << NUM_SETS) - 1
 SET_CARD_MASKS = tuple(
     ((1 << CARDS_PER_SET) - 1) << (CARDS_PER_SET * idx) for idx in range(NUM_SETS)
 )
+
 
 @dataclass(frozen=True)
 class Turn:
@@ -30,7 +32,9 @@ class Turn:
 
     def __post_init__(self) -> None:
         if not (0 <= self.asker <= 5):
-            raise ValueError(f"Asker index must be between 0 and 5 inclusive, got {self.asker}.")
+            raise ValueError(
+                f"Asker index must be between 0 and 5 inclusive, got {self.asker}."
+            )
         if not (0 <= self.responder <= 5):
             raise ValueError(
                 f"Responder index must be between 0 and 5 inclusive, got {self.responder}."
@@ -38,7 +42,9 @@ class Turn:
         if self.asker == self.responder:
             raise ValueError("Asker and responder must be different players.")
         if not (0 <= self.card_id < NUM_CARDS):
-            raise ValueError(f"Card id must be between 0 and {NUM_CARDS - 1}, got {self.card_id}.")
+            raise ValueError(
+                f"Card id must be between 0 and {NUM_CARDS - 1}, got {self.card_id}."
+            )
 
     @property
     def answer(self) -> str:
@@ -62,7 +68,7 @@ class PlayerState:
 
     def __init__(
         self,
-        hand: int | Sequence[bool] | Iterable[int | object],
+        hand: list[Card] = None,
         player_index: Optional[int] = None,
         public_cards: Optional[int | Sequence[bool] | Iterable[int | object]] = None,
     ) -> None:
@@ -85,6 +91,9 @@ class PlayerState:
         self.set_claims: list[int] = [0] * NUM_PLAYERS
         self.known_sets: list[int] = [0] * NUM_PLAYERS
 
+        # has player[i] asked about set j? boolean[6][9]
+        self.asked_sets: list[list[float]] = [[0.0 * 6] for _ in range(9)]
+
         self.known_have[player_index] = private_mask
         self.private_info = private_mask
         self.public_info = public_mask
@@ -99,10 +108,10 @@ class PlayerState:
         self._update_player_sets(player_index)
         self._sync_self_masks()
 
-    # HELPERS 
+    # HELPERS
     @staticmethod
     def _coerce_to_bitmask(
-        value: Union[int, Sequence[bool], Iterable[Union[int, object]]]
+        value: Union[int, Sequence[bool], Iterable[Union[int, object]]],
     ) -> int:
         """Convert *value* to a 54-bit mask representing cards held.
 
@@ -120,7 +129,9 @@ class PlayerState:
             return value & ALL_CARDS_MASK
 
         if isinstance(value, Sequence):
-            if len(value) == NUM_CARDS and all(isinstance(v, (bool, int)) for v in value):
+            if len(value) == NUM_CARDS and all(
+                isinstance(v, (bool, int)) for v in value
+            ):
                 mask = 0
                 for idx, present in enumerate(value):
                     if present:
@@ -155,7 +166,9 @@ class PlayerState:
     @staticmethod
     def _validate_player(player: int) -> None:
         if not (0 <= player < NUM_PLAYERS):
-            raise ValueError(f"Player index must be in [0, {NUM_PLAYERS - 1}], got {player}.")
+            raise ValueError(
+                f"Player index must be in [0, {NUM_PLAYERS - 1}], got {player}."
+            )
 
     @staticmethod
     def _validate_set(set_id: int) -> None:
@@ -223,14 +236,17 @@ class PlayerState:
         if self.set_claims[player] != before:
             self._update_player_sets(player)
 
-
-
     # PUBLIC API
     def has_card(self, card_id: int) -> bool:
         self._validate_card_id(card_id)
         return bool(self.private_info & (1 << card_id))
 
+    # given legal turn (one valid ask-answer), update our local knowledge
     def process_turn(self, turn):
+        if turn.player_index != self.player_index:
+            raise ValueError(
+                "process_turn should ask a turn from the perspective of this player."
+            )
         if not isinstance(turn, Turn):
             raise TypeError("process_turn expects a Turn instance.")
         mask = 1 << turn.card_id
@@ -298,14 +314,20 @@ class PlayerState:
             for card_id in range(NUM_CARDS):
                 mask = 1 << card_id
                 owner = next(
-                    (player for player in range(NUM_PLAYERS) if self.known_have[player] & mask),
+                    (
+                        player
+                        for player in range(NUM_PLAYERS)
+                        if self.known_have[player] & mask
+                    ),
                     None,
                 )
                 if owner is not None:
                     continue
 
                 candidates = [
-                    player for player in range(NUM_PLAYERS) if not (self.known_not[player] & mask)
+                    player
+                    for player in range(NUM_PLAYERS)
+                    if not (self.known_not[player] & mask)
                 ]
                 if len(candidates) == 1:
                     self._set_known_have(candidates[0], card_id)
@@ -338,5 +360,3 @@ class PlayerState:
                 break
 
         return self.snapshot()
-
-    
