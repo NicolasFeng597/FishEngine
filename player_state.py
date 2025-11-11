@@ -15,7 +15,6 @@ SET_CARD_MASKS = tuple(
     ((1 << CARDS_PER_SET) - 1) << (CARDS_PER_SET * idx) for idx in range(NUM_SETS)
 )
 
-
 @dataclass(frozen=True)
 class Turn:
     """One ask/answer moment.
