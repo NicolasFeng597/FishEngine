@@ -51,13 +51,8 @@ class PlayerState:
 
         self.player_index = player_index
         hand_ids = self._extract_ids(hand or [])
-        public_ids = self._extract_ids(public_cards or [])
-        
-        if not set(public_ids).issubset(set(hand_ids)):
-            raise ValueError("Public cards must be subset of hand")
         
         self.hand = set(hand_ids)
-        self.public_hand = set(public_ids)
         self.known_have = [set() for _ in range(NUM_PLAYERS)]
         self.known_not = [set() for _ in range(NUM_PLAYERS)]
         self.set_claims = [set() for _ in range(NUM_PLAYERS)]
@@ -119,9 +114,6 @@ class PlayerState:
             self._set_known_have(turn.asker, turn.card_id)
             if turn.responder == self.player_index:
                 self.hand.discard(turn.card_id)
-                self.public_hand.discard(turn.card_id)
-            elif turn.asker == self.player_index:
-                self.public_hand.add(turn.card_id)
         else:
             self._set_known_not(turn.responder, turn.card_id)
 
@@ -130,8 +122,6 @@ class PlayerState:
         return {
             "player_index": self.player_index,
             "hand": sorted(self.hand),
-            "public_hand": sorted(self.public_hand),
-            "private_hand": sorted(self.hand - self.public_hand),
             "known_have": [sorted(cards) for cards in self.known_have],
             "known_not": [sorted(cards) for cards in self.known_not],
             "set_claims": [sorted(sets) for sets in self.set_claims],

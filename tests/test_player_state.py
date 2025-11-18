@@ -39,9 +39,6 @@ class PlayerStateTests(unittest.TestCase):
             self.assertEqual(len(state.known_have[other]), 0)
             self.assertEqual(len(state.set_claims[other]), 0)
         
-        # Public info starts empty
-        self.assertEqual(state.public_hand, set())
-        
         # Check our set claims based on our hand
         own_sets = state.set_claims[0]
         expected_sets = {0 // CARDS_PER_SET, 5 // CARDS_PER_SET, 53 // CARDS_PER_SET}
@@ -54,7 +51,6 @@ class PlayerStateTests(unittest.TestCase):
         
         # We (player 2) should now have card 10
         self.assertTrue(state.has_card(10))
-        self.assertTrue(10 in state.public_hand)
         self.assertTrue(10 in state.known_have[2])
         
         # Other players should not have it
@@ -73,7 +69,6 @@ class PlayerStateTests(unittest.TestCase):
         
         # We (player 1) should no longer have card 4
         self.assertFalse(state.has_card(4))
-        self.assertFalse(4 in state.public_hand)
         
         # Player 5 should have it now
         self.assertTrue(4 in state.known_have[5])
@@ -90,7 +85,6 @@ class PlayerStateTests(unittest.TestCase):
         
         # We (player 3) should not have card 12
         self.assertFalse(state.has_card(12))
-        self.assertFalse(12 in state.public_hand)
         self.assertTrue(12 in state.known_not[3])
         self.assertFalse(12 in state.known_have[3])
         
@@ -119,18 +113,17 @@ class PlayerStateTests(unittest.TestCase):
         self.assertTrue((7 // CARDS_PER_SET) in state.set_claims[1])
 
     def test_solve_output(self):
-        state = PlayerState(hand=[2, 8], player_index=4, public_cards=[2])
+        state = PlayerState(hand=[2, 8], player_index=4)
         summary = state.solve()
         
         self.assertEqual(sorted(summary["hand"]), [2, 8])
-        self.assertEqual(sorted(summary["public_hand"]), [2])
-        self.assertEqual(sorted(summary["private_hand"]), [8])
         self.assertEqual(sorted(summary["known_have"][4]), [2, 8])
         
-        # Other players should know we don't have card 2
+        # Other players should know we don't have card 2 and 8
         for other in range(NUM_PLAYERS):
             if other != 4:
                 self.assertIn(2, summary["known_not"][other])
+                self.assertIn(8, summary["known_not"][other])
         
         expected_sets = sorted({card // CARDS_PER_SET for card in (2, 8)})
         self.assertEqual(sorted(summary["set_claims"][4]), expected_sets)
